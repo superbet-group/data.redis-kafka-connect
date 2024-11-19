@@ -213,10 +213,22 @@ public class RedisSinkTask extends SinkTask {
 		case TIMESERIES:
 			return new TsAdd<>(this::collectionKey, this::samples);
 		case ZSET:
-			return new Zadd<>(this::collectionKey, this::scoredValues);
+			return new Zadd<>(this::collectionKeyZSet, this::scoredValuesZSet);
 		default:
 			throw new ConfigException(RedisSinkConfigDef.TYPE_CONFIG, config.getType());
 		}
+	}
+
+	private Collection<ScoredValue<byte[]>> scoredValuesZSet(SinkRecord sinkRecord) {
+		String[] args = ((String) sinkRecord.value()).split(" ");
+		double score = Double.parseDouble(args[0]);
+		byte[] member = args[1].getBytes(config.getCharset());
+
+		return Arrays.asList(ScoredValue.just(score, member));
+	}
+
+	private byte[] collectionKeyZSet(SinkRecord sinkRecord) {
+		return ((String) sinkRecord.key()).getBytes(config.getCharset());
 	}
 
 	private Collection<ScoredValue<byte[]>> scoredValues(SinkRecord sinkRecord) {

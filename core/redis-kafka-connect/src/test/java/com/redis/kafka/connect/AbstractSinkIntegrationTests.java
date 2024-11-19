@@ -432,19 +432,26 @@ abstract class AbstractSinkIntegrationTests extends AbstractTestBase {
 	@Test
 	void putZset() {
 		String topic = "putZset";
+		String key1 = "ZSetKey1";
+		String key2 = "ZSetKey2";
 		int count = 50;
 		List<ScoredValue<String>> expected = new ArrayList<>(count);
 		List<SinkRecord> records = new ArrayList<>(count);
 		for (int i = 0; i < count; i++) {
-			String value = "zsetmember:" + i;
-			expected.add(ScoredValue.just(i, value));
-			records.add(write(topic, new SchemaAndValue(Schema.STRING_SCHEMA, value),
-					new SchemaAndValue(Schema.FLOAT64_SCHEMA, i)));
+			String value = i + " zsetmember:" + i;
+			expected.add(ScoredValue.just(i, "zsetmember:" + i));
+			records.add(write(topic, new SchemaAndValue(Schema.STRING_SCHEMA, key1),
+					new SchemaAndValue(Schema.STRING_SCHEMA, value)));
+			records.add(write(topic, new SchemaAndValue(Schema.STRING_SCHEMA, key2),
+					new SchemaAndValue(Schema.STRING_SCHEMA, value)));
 		}
 		put(topic, RedisType.ZSET, records);
-		List<ScoredValue<String>> actual = redisConnection.sync().zrangeWithScores(topic, 0, -1);
 		expected.sort(Comparator.comparing(ScoredValue::getScore));
-		assertEquals(expected, actual);
+		List<ScoredValue<String>> actual1 = redisConnection.sync().zrangeWithScores(key1, 0, -1);
+		assertEquals(expected, actual1);
+
+		List<ScoredValue<String>> actual2 = redisConnection.sync().zrangeWithScores(key2, 0, -1);
+		assertEquals(expected, actual2);
 	}
 
 	public void put(String topic, RedisType type, List<SinkRecord> records, String... props) {
